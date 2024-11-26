@@ -34,9 +34,10 @@ JOIN orders_new odn
 WHERE odn.status = 'Shipped'
 GROUP BY `productName`
 ORDER BY revenue DESC
+LIMIT 5
 ;
 
--- Top 10 & Bottom 10 products by revenue
+-- Top 5 & Bottom 5 products by revenue
 (SELECT `productName`,
         SUM(`quantityOrdered` * `priceEach`) AS revenue,
         'Top' AS position
@@ -48,7 +49,7 @@ JOIN orders_new odn
 WHERE odn.status = 'Shipped'
 GROUP BY `productName`
 ORDER BY revenue DESC
-LIMIT 10)
+LIMIT 5)
 UNION ALL
 (SELECT `productName`,
         SUM(`quantityOrdered` * `priceEach`) AS revenue,
@@ -61,7 +62,7 @@ JOIN orders_new odn
 WHERE odn.status = 'Shipped'
 GROUP BY `productName`
 ORDER BY revenue ASC
-LIMIT 10)
+LIMIT 5)
 ;
 
 -- Top product in product line by revenue
