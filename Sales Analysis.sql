@@ -98,7 +98,7 @@ JOIN orders_new odn
 WHERE odn.status = 'Shipped'
 ;
 
--- Purchasing cost, profit and revenue by product
+-- Purchasing cost, profit and revenue by product line
 SELECT `productLine`,
         SUM(od.`quantityOrdered` * pn.`buyPrice`) AS purchasing_cost,
         SUM((od.`priceEach` - pn.`buyPrice`) * od.`quantityOrdered`) AS profit,
@@ -113,7 +113,7 @@ GROUP BY `productLine`
 ORDER BY profit DESC
 ;
 
--- Top 10 & Bottom 10 product line by Purchasing cost, profit and revenue
+-- Top & Bottom 5 products by Purchasing cost, profit and revenue
 (SELECT `productName`,
         SUM(od.`quantityOrdered` * pn.`buyPrice`) AS purchasing_cost,
         SUM((od.`priceEach` - pn.`buyPrice`) * od.`quantityOrdered`) AS profit,
@@ -127,7 +127,7 @@ JOIN orders_new odn
 WHERE odn.status = 'Shipped'
 GROUP BY `productName`
 ORDER BY profit DESC
-LIMIT 10)
+LIMIT 5)
 UNION ALL
 (SELECT `productName`,
         SUM(od.`quantityOrdered` * pn.`buyPrice`) AS purchasing_cost,
@@ -142,7 +142,7 @@ JOIN orders_new odn
 WHERE odn.status = 'Shipped'
 GROUP BY `productName`
 ORDER BY profit ASC
-LIMIT 10)
+LIMIT 5)
 ;
 
 -- Total revenue by country 
@@ -166,7 +166,7 @@ FROM `product_CTE`
 WHERE status = 'Shipped' 
 ;
 
--- Revenue & orders by Customers
+-- Top 10 Revenue & orders by Customers
 SELECT CONCAT(c.`contactFirstName`, " ", c.`contactLastName`) AS fullName,
         COUNT(od.`orderNumber`) AS orders,
         SUM(od.`quantityOrdered` * od.`priceEach`) AS revenue
@@ -179,7 +179,7 @@ JOIN customers_new c
     ON c.`customerNumber` = odn.`customerNumber`
 GROUP BY CONCAT(c.`contactFirstName`, ' ', c.`contactLastName`)
 ORDER BY revenue DESC
-;
+LIMIT 10;
 
 -- Revenue by sales rep 
 SELECT CONCAT(en.`firstName`, " ", en.`lastName`) AS fullName,
@@ -217,7 +217,7 @@ GROUP BY CONCAT(e2.`firstName`, " ", e2.`lastName`)
 ORDER BY revenue DESC
 ;
 
--- Revenue by office territory 
+-- Revenue by territory 
 SELECT ofn.territory,
         SUM((od.`priceEach` - pn.`buyPrice`) * od.`quantityOrdered`) AS profit,
         SUM(od.`quantityOrdered` * od.`priceEach`) AS revenue
@@ -231,7 +231,7 @@ JOIN customers_new c
 JOIN employees_new en  
     ON en.`employeeNumber` = c.`salesRepEmployeeNumber`
 JOIN offices_new ofn
-    ON ofn.`officeCode` = e.`officeCode`
+    ON ofn.`officeCode` = en.`officeCode`
 GROUP BY ofn.territory
 ORDER BY revenue DESC
 ;

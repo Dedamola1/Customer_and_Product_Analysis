@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../../Data Projects/Finlend Data Analysis/SQL"
 		}
 	],
 	"settings": {}

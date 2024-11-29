@@ -37,7 +37,7 @@ SELECT `productName`,
 FROM products_new pn
 JOIN orderdetails od
     ON od.`productCode` = pn.`productCode`
-GROUP BY `product`
+GROUP BY `productName`
 ORDER BY total_quantity_ordered DESC
 ;
 
@@ -85,15 +85,16 @@ WHERE row_num = 1
 
 -- Total orders by status
 SELECT odn.status,
-        COUNT(od.`orderNumber`) AS total_orders
-FROM products_new pn
-JOIN orderdetails od 
-    ON od.`productCode` = pn.`productCode`
+       COUNT(od.`orderNumber`) AS total_orders,
+       ROUND((COUNT(od.`orderNumber`) * 100.0) / SUM(COUNT(od.`orderNumber`)) OVER (),1) AS orders_percentage
+FROM orderdetails od 
 JOIN orders_new odn
     ON odn.`orderNumber` = od.`orderNumber`
 GROUP BY odn.status
+ORDER BY total_orders DESC
 ;
 
+-- Current status of all orders
 SELECT status,
         COUNT(`orderNumber`) AS total_orders
 FROM orders_new 
