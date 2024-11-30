@@ -94,13 +94,6 @@ GROUP BY odn.status
 ORDER BY total_orders DESC
 ;
 
--- Current status of all orders
-SELECT status,
-        COUNT(`orderNumber`) AS total_orders
-FROM orders_new 
-GROUP BY status
-;
-
 -- Total shipped orders by product line
 WITH product_CTE AS (
     SELECT  pn.`productLine`,
@@ -158,4 +151,25 @@ WITH product_CTE AS (
 SELECT country,
         total_shipped_orders
 FROM `product_CTE`
+;
+
+
+-- Total shipped orders by shipped date
+SELECT DISTINCT(YEAR(`shippedDate`)) AS year,
+        COUNT(odn.`orderNumber`) as total_orders
+FROM orders_new odn
+JOIN orderdetails od 
+    ON od.`orderNumber` = odn.`orderNumber`
+WHERE status = "Shipped"
+GROUP BY YEAR(`shippedDate`)
+;
+
+-- Total shipped orders by month 
+SELECT DISTINCT(MONTHNAME(`shippedDate`)) AS year,
+        COUNT(odn.`orderNumber`) as total_orders
+FROM orders_new odn
+JOIN orderdetails od 
+    ON od.`orderNumber` = odn.`orderNumber`
+WHERE status = "Shipped"
+GROUP BY MONTHNAME(`shippedDate`)
 ;

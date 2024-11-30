@@ -155,3 +155,12 @@ WITH payments_CTE AS (
 SELECT *
 FROM payments_CTE
 WHERE Row_Num > 1;
+
+
+-- Updating Date Columns (Payments Table)
+SELECT `paymentDate`,
+STR_TO_DATE(`paymentDate`, '%m/%d/%Y')
+FROM payments;
+
+UPDATE payments
+SET `paymentDate` = STR_TO_DATE(`paymentDate`, '%m/%d/%Y');
