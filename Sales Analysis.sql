@@ -178,6 +178,7 @@ JOIN customers_new c
     ON c.`customerNumber` = odn.`customerNumber`
 JOIN employees_new en  
     ON en.`employeeNumber` = c.`salesRepEmployeeNumber`
+WHERE odn.status = "Shipped"
 GROUP BY CONCAT(en.`firstName`, " ", en.`lastName`)
 ORDER BY revenue DESC
 ;
@@ -197,7 +198,7 @@ JOIN employees_new e1
     ON e1.`employeeNumber` = c.`salesRepEmployeeNumber`
 JOIN employees_new e2
     ON e1.`reportsTo` = e2.`employeeNumber`
-WHERE e2.`jobTitle` LIKE '%Manager%' 
+WHERE e2.`jobTitle` LIKE '%Manager%' AND odn.status = "Shipped"
 GROUP BY CONCAT(e2.`firstName`, " ", e2.`lastName`)
 ORDER BY revenue DESC
 ;
@@ -217,7 +218,21 @@ JOIN employees_new en
     ON en.`employeeNumber` = c.`salesRepEmployeeNumber`
 JOIN offices_new ofn
     ON ofn.`officeCode` = en.`officeCode`
+WHERE odn.status = "Shipped"
 GROUP BY ofn.territory
 ORDER BY revenue DESC
 ;
 
+-- Profit and revenue by product vendor
+SELECT `productVendor`,
+        SUM((od.`priceEach` - pn.`buyPrice`) * od.`quantityOrdered`) AS profit,
+        SUM(od.`quantityOrdered` * od.`priceEach`) AS revenue
+FROM products_new pn
+JOIN orderdetails od
+    ON od.`productCode` = pn.`productCode`
+JOIN orders_new odn 
+    ON odn.`orderNumber` = od.`orderNumber`
+WHERE odn.status = "Shipped"
+GROUP BY `productVendor`
+ORDER BY revenue DESC
+;
