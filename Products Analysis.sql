@@ -3,22 +3,27 @@ USE db_schema;
 
 -- Total orders recorded for each product line
 SELECT `productLine`,
-        COUNT(`orderNumber`) AS total_Orders
+        COUNT(od.`orderNumber`) AS total_Orders
 FROM products_new pn
 JOIN orderdetails od
     ON od.`productCode` = pn.`productCode`
+JOIN orders_new odn
+    ON odn.`orderNumber` = od.`orderNumber`
 GROUP BY `productLine`
 ORDER BY total_orders DESC
 ;
 
--- Total orders recorded for each product 
+-- Total orders recorded for top 20 products 
 SELECT `productName`,
-        COUNT(`orderNumber`) AS total_Orders
+        COUNT(od.`orderNumber`) AS total_Orders
 FROM products_new pn
 JOIN orderdetails od
     ON od.`productCode` = pn.`productCode`
+JOIN orders_new odn
+    ON odn.`orderNumber` = od.`orderNumber`
 GROUP BY `productName`
 ORDER BY total_orders DESC
+LIMIT 20
 ;
 
 -- Quantity sold for each product line
@@ -27,45 +32,42 @@ SELECT `productLine`,
 FROM products_new pn
 JOIN orderdetails od
     ON od.`productCode` = pn.`productCode`
+JOIN orders_new odn 
+    ON odn.`orderNumber` = od.`orderNumber` 
+WHERE odn.`status` IN ('Shipped', 'Resolved')
 GROUP BY `productLine`
 ORDER BY total_quantity_ordered DESC
 ;
 
--- Quantity sold for each product 
-SELECT `productName`,
-        SUM(`quantityOrdered`) AS total_quantity_ordered
-FROM products_new pn
-JOIN orderdetails od
-    ON od.`productCode` = pn.`productCode`
-GROUP BY `productName`
-ORDER BY total_quantity_ordered DESC
-;
-
--- Top 10 & Bottom 10 products by quantity sold
-(SELECT `productLine`,
-        `productName`,
+-- Top 5 & Bottom 5 products by quantity sold
+(SELECT `productName`,
         SUM(`quantityOrdered`) AS total_quantity_sold,
         'Top' AS position
 FROM products_new pn
 JOIN orderdetails od
     ON od.`productCode` = pn.`productCode`
+JOIN orders_new odn 
+    ON odn.`orderNumber` = od.`orderNumber` 
+WHERE odn.`status` IN ('Shipped', 'Resolved')
 GROUP BY `productName`, `productLine`
 ORDER BY total_quantity_sold DESC
-LIMIT 10)
+LIMIT 5)
 UNION ALL
-(SELECT `productLine`,
-        `productName`,
+(SELECT `productName`,
         SUM(`quantityOrdered`) AS total_quantity_sold,
         'Bottom' AS position
 FROM products_new pn
 JOIN orderdetails od
     ON od.`productCode` = pn.`productCode`
+JOIN orders_new odn 
+    ON odn.`orderNumber` = od.`orderNumber` 
+WHERE odn.`status` IN ('Shipped', 'Resolved')
 GROUP BY `productName`, `productLine`
 ORDER BY total_quantity_sold ASC
-LIMIT 10)
+LIMIT 5)
 ;
 
--- Top product in product line by orders
+-- Top product in product line by quantity sold
 WITH product_CTE AS (
     SELECT `productName`,
             `productLine`,
@@ -74,6 +76,8 @@ WITH product_CTE AS (
     FROM products_new pn
     JOIN orderdetails od
         ON od.`productCode` = pn.`productCode`
+    JOIN orders_new odn 
+        ON odn.`orderNumber` = od.`orderNumber`
     GROUP BY `productName`, `productLine`
 )
 SELECT `productLine`,
@@ -97,60 +101,39 @@ ORDER BY total_orders DESC
 -- Total shipped orders by product line
 WITH product_CTE AS (
     SELECT  pn.`productLine`,
-            odn.status,
-            COUNT(od.`orderNumber`) AS total_shipped_orders,
-            ROW_NUMBER () OVER(PARTITION BY odn.status ORDER BY COUNT(od.`orderNumber`) DESC) AS row_num
+            COUNT(od.`orderNumber`) AS total_shipped_orders
     FROM products_new pn
     JOIN orderdetails od
         ON od.`productCode` = pn.`productCode`
     JOIN orders_new odn
         ON odn.`orderNumber` = od.`orderNumber`
-    GROUP BY pn.`productLine`, odn.status
-    HAVING odn.status = 'Shipped'
+    WHERE odn.`status` IN ('Shipped', 'Resolved')
+    GROUP BY pn.`productLine`
 )
 SELECT `productLine`,
         total_shipped_orders
 FROM `product_CTE`
+ORDER BY total_shipped_orders DESC
 ;
 
--- Total shipped orders by product
-WITH product_CTE AS (
-    SELECT  pn.`productName`,
-            odn.status,
-            COUNT(od.`orderNumber`) AS total_shipped_orders,
-            ROW_NUMBER () OVER(PARTITION BY odn.status ORDER BY COUNT(od.`orderNumber`) DESC) AS row_num
-    FROM products_new pn
-    JOIN orderdetails od
-        ON od.`productCode` = pn.`productCode`
-    JOIN orders_new odn
-        ON odn.`orderNumber` = od.`orderNumber`
-    GROUP BY pn.`productName`, odn.status
-    HAVING odn.status = 'Shipped'
-)
-SELECT `productName`,
-        total_shipped_orders
-FROM `product_CTE`
-;
-
--- Total shipped orders by counntry 
+-- Total shipped orders by country 
 WITH product_CTE AS (
     SELECT c.country,
-            odn.status,
-            COUNT(od.`orderNumber`) AS total_shipped_orders,
-            ROW_NUMBER () OVER(PARTITION BY odn.status ORDER BY COUNT(od.`orderNumber`) DESC) AS row_num
+            COUNT(od.`orderNumber`) AS total_shipped_orders
     FROM products_new pn
     JOIN orderdetails od
         ON od.`productCode` = pn.`productCode`
     JOIN orders_new odn
         ON odn.`orderNumber` = od.`orderNumber`
     JOIN customers_new c 
-        ON c.`customerNumber` = odn.`customerNumber`  
-    GROUP BY c.country, odn.status
-    HAVING odn.status = 'Shipped'
+        ON c.`customerNumber` = odn.`customerNumber` 
+     WHERE odn.`status` IN ('Shipped', 'Resolved') 
+    GROUP BY c.country
 )
 SELECT country,
         total_shipped_orders
 FROM `product_CTE`
+ORDER BY total_shipped_orders DESC
 ;
 
 
@@ -160,7 +143,7 @@ SELECT DISTINCT(YEAR(`shippedDate`)) AS year,
 FROM orders_new odn
 JOIN orderdetails od 
     ON od.`orderNumber` = odn.`orderNumber`
-WHERE status = "Shipped"
+WHERE odn.`status` IN ('Shipped', 'Resolved')
 GROUP BY YEAR(`shippedDate`)
 ;
 
@@ -170,7 +153,7 @@ SELECT DISTINCT(MONTHNAME(`shippedDate`)) AS month,
 FROM orders_new odn
 JOIN orderdetails od 
     ON od.`orderNumber` = odn.`orderNumber`
-WHERE status = "Shipped"
+WHERE odn.`status` IN ('Shipped', 'Resolved')
 GROUP BY MONTHNAME(`shippedDate`)
 ;
 
@@ -180,7 +163,8 @@ SELECT DISTINCT(MONTHNAME(`shippedDate`)) AS month,
 FROM orders_new odn
 JOIN orderdetails od 
     ON od.`orderNumber` = odn.`orderNumber`
-WHERE status = "Shipped" AND YEAR(`shippedDate`) = 2003
+WHERE odn.`status` IN ('Shipped', 'Resolved') AND 
+        YEAR(`shippedDate`) = 2003
 GROUP BY MONTHNAME(`shippedDate`)
 ;
 
@@ -190,7 +174,8 @@ SELECT DISTINCT(MONTHNAME(`shippedDate`)) AS month,
 FROM orders_new odn
 JOIN orderdetails od 
     ON od.`orderNumber` = odn.`orderNumber`
-WHERE status = "Shipped" AND YEAR(`shippedDate`) = 2004
+WHERE odn.`status` IN ('Shipped', 'Resolved') AND 
+        YEAR(`shippedDate`) = 2004
 GROUP BY MONTHNAME(`shippedDate`)
 ;
 
@@ -200,7 +185,8 @@ SELECT DISTINCT(MONTHNAME(`shippedDate`)) AS month,
 FROM orders_new odn
 JOIN orderdetails od 
     ON od.`orderNumber` = odn.`orderNumber`
-WHERE status = "Shipped" AND YEAR(`shippedDate`) = 2005
+WHERE odn.`status` IN ('Shipped', 'Resolved') AND 
+        YEAR(`shippedDate`) = 2005
 GROUP BY MONTHNAME(`shippedDate`)
 ;
 
@@ -212,7 +198,7 @@ JOIN orderdetails od
     ON od.`productCode` = pn.`productCode`
 JOIN orders_new odn 
     ON odn.`orderNumber` = od.`orderNumber`
-WHERE odn.status = "Shipped"
+WHERE odn.`status` IN ('Shipped', 'Resolved')
 GROUP BY `productVendor`
 ORDER BY shipped_orders DESC
 ;
@@ -225,7 +211,7 @@ JOIN orderdetails od
     ON od.`productCode` = pn.`productCode`
 JOIN orders_new odn 
     ON odn.`orderNumber` = od.`orderNumber`
-WHERE odn.status = "Shipped"
+WHERE odn.`status` IN ('Shipped', 'Resolved')
 GROUP BY `productVendor`
 ORDER BY quantity_sold DESC
 ;
