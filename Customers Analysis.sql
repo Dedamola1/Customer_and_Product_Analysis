@@ -18,7 +18,7 @@ JOIN orders_new odn
     ON odn.`orderNumber` = od.`orderNumber`
 JOIN customers_new c 
     ON c.`customerNumber` = odn.`customerNumber`
-WHERE odn.status = "Shipped"
+WHERE odn.`status` IN ('Shipped', 'Resolved')
 GROUP BY `customerName`
 ORDER BY revenue DESC
 LIMIT 10
@@ -34,26 +34,37 @@ JOIN orders_new odn
     ON odn.`orderNumber` = od.`orderNumber`
 JOIN customers_new c 
     ON c.`customerNumber` = odn.`customerNumber`
-WHERE odn.status = "Shipped"
+WHERE odn.`status` IN ('Shipped', 'Resolved')
 GROUP BY `customerName`
 ORDER BY orders DESC
 LIMIT 10
 ;
 
--- Total customer purchases by payment year
+-- Total customer transactions by year
 SELECT DISTINCT(YEAR(`paymentDate`)) AS year,
-        COUNT(`customerNumber`) AS customer_purchase
+        COUNT(`customerNumber`) AS customerTransactions
 FROM payments
 GROUP BY YEAR(`paymentDate`)
 ;
 
+-- Total transactions by customer name
+SELECT p.`customerNumber`,
+        `customerName`,
+        COUNT(p.`customerNumber`) AS transactions
+FROM payments p 
+JOIN customers_new c 
+        ON c.`customerNumber` = p.`customerNumber`
+GROUP BY p.`customerNumber`, `customerName`
+ORDER BY transactions DESC
+;
+
 -- Total customer purchases by payment month
-SELECT year,
+SELECT month,
         customer_purchase 
 FROM (
-    SELECT DISTINCT(MONTHNAME(`paymentDate`)) AS year,
+    SELECT DISTINCT(MONTHNAME(`paymentDate`)) AS month,
             MONTH(`paymentDate`),
-            COUNT(`customerNumber`) AS customer_purchase,
+            COUNT(DISTINCT(`customerNumber`)) AS customer_purchase,
             ROW_NUMBER() OVER(ORDER BY MONTH(`paymentDate`)) AS row_num
     FROM payments
     GROUP BY MONTHNAME(`paymentDate`), MONTH(`paymentDate`)
@@ -92,14 +103,67 @@ FROM (
                 `customerName`,
                 `creditLimit`
         ORDER BY c.`customerNumber`
-) as agg_table2
+) as agg_table3
 WHERE totalSpend < `creditLimit`)
 ;
 
--- Customer distribution by locatioon
-SELECT country,
-        COUNT(`customerNumber`) AS customersCount
-FROM customers_new
-GROUP BY country
-ORDER BY customersCount DESC
+-- Customers name who exceed their credit limit
+SELECT `customerName`
+FROM (
+        SELECT c.`customerNumber`,
+                `customerName`,
+                `creditLimit`,
+                SUM(amount) as totalSpend
+        FROM customers_new c 
+        JOIN payments p 
+        ON p.`customerNumber` = c.`customerNumber`
+        GROUP BY c.`customerNumber`,
+                `customerName`,
+                `creditLimit`
+        ORDER BY c.`customerNumber`
+) as agg_table4
+WHERE totalSpend > `creditLimit`
 ;
+
+-- Average revenue per customer (ARPC) in 2003, 2004 and 2005
+(SELECT ROUND(revenue / customers,2) AS AverageRevenuePerCustomer,
+        '2003' AS Year
+FROM (
+        SELECT SUM(od.`quantityOrdered` * od.`priceEach`) AS revenue,
+                COUNT(DISTINCT(`customerName`)) AS customers
+        FROM orderdetails od
+        JOIN orders_new odn
+                ON odn.`orderNumber` = od.`orderNumber`
+        JOIN customers_new c 
+                ON c.`customerNumber` = odn.`customerNumber`
+        WHERE odn.`status` IN ('Shipped', 'Resolved') AND YEAR(`shippedDate`) = 2003
+) AS agg_table5)
+UNION ALL
+(SELECT ROUND(revenue / customers,2) AS AverageRevenuePerCustomer,
+        '2004' AS Year
+FROM (
+        SELECT SUM(od.`quantityOrdered` * od.`priceEach`) AS revenue,
+                COUNT(DISTINCT(`customerName`)) AS customers
+        FROM orderdetails od
+        JOIN orders_new odn
+                ON odn.`orderNumber` = od.`orderNumber`
+        JOIN customers_new c 
+                ON c.`customerNumber` = odn.`customerNumber`
+        WHERE odn.`status` IN ('Shipped', 'Resolved') AND YEAR(`shippedDate`) = 2004
+) AS agg_table5)
+UNION ALL
+(SELECT ROUND(revenue / customers,2) AS AverageRevenuePerCustomer,
+        '2005' AS Year
+FROM (
+        SELECT SUM(od.`quantityOrdered` * od.`priceEach`) AS revenue,
+                COUNT(DISTINCT(`customerName`)) AS customers
+        FROM orderdetails od
+        JOIN orders_new odn
+                ON odn.`orderNumber` = od.`orderNumber`
+        JOIN customers_new c 
+                ON c.`customerNumber` = odn.`customerNumber`
+        WHERE odn.`status` IN ('Shipped', 'Resolved') AND YEAR(`shippedDate`) = 2005
+) AS agg_table5)
+;
+
+-- Monthly Recurring Revenue 
