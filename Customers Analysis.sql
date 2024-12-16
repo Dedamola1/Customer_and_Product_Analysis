@@ -64,7 +64,7 @@ SELECT month,
 FROM (
     SELECT DISTINCT(MONTHNAME(`paymentDate`)) AS month,
             MONTH(`paymentDate`),
-            COUNT(DISTINCT(`customerNumber`)) AS customer_purchase,
+            COUNT((`customerNumber`)) AS customer_purchase,
             ROW_NUMBER() OVER(ORDER BY MONTH(`paymentDate`)) AS row_num
     FROM payments
     GROUP BY MONTHNAME(`paymentDate`), MONTH(`paymentDate`)
@@ -81,7 +81,7 @@ FROM (
                 SUM(amount) as totalSpend
         FROM customers_new c 
         JOIN payments p 
-        ON p.`customerNumber` = c.`customerNumber`
+                ON p.`customerNumber` = c.`customerNumber`
         GROUP BY c.`customerNumber`,
                 `customerName`,
                 `creditLimit`
@@ -98,7 +98,7 @@ FROM (
                 SUM(amount) as totalSpend
         FROM customers_new c 
         JOIN payments p 
-        ON p.`customerNumber` = c.`customerNumber`
+                ON p.`customerNumber` = c.`customerNumber`
         GROUP BY c.`customerNumber`,
                 `customerName`,
                 `creditLimit`
@@ -166,4 +166,21 @@ FROM (
 ) AS agg_table5)
 ;
 
--- Monthly Recurring Revenue 
+-- Customer lifetime value
+WITH customervalue_CTE AS (
+        SELECT total_revenue / total_purchases AS average_purcahse_value,
+                total_purchases / total_customers AS average_purchase_frequency_rate
+        FROM (
+                SELECT SUM(od.`quantityOrdered` * od.`priceEach`) AS total_revenue,
+                        COUNT(`customerNumber`) AS total_purchases,
+                        COUNT(DISTINCT(`customerNumber`)) AS total_customers
+                FROM orderdetails od
+                JOIN orders_new odn
+                        ON odn.`orderNumber` = od.`orderNumber`
+                WHERE odn.`status` IN ('Shipped', 'Resolved') AND YEAR(`shippedDate`) = 2003
+                ) as agg_table6
+)
+SELECT ROUND((average_purcahse_value * average_purchase_frequency_rate),2) AS customer_value 
+FROM customervalue_CTE
+;
+
