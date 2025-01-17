@@ -47,15 +47,15 @@ FROM payments
 GROUP BY YEAR(`paymentDate`)
 ;
 
--- Total transactions by customer name
-SELECT p.`customerNumber`,
-        `customerName`,
+-- Total transactions by top 5 customers
+SELECT  `customerName`,
         COUNT(p.`customerNumber`) AS transactions
 FROM payments p 
 JOIN customers_new c 
         ON c.`customerNumber` = p.`customerNumber`
-GROUP BY p.`customerNumber`, `customerName`
+GROUP BY `customerName`
 ORDER BY transactions DESC
+LIMIT 5
 ;
 
 -- Total customer purchases by payment month
@@ -167,20 +167,28 @@ FROM (
 ;
 
 -- Customer lifetime value
-WITH customervalue_CTE AS (
-        SELECT total_revenue / total_purchases AS average_purcahse_value,
-                total_purchases / total_customers AS average_purchase_frequency_rate
+WITH customerCTE AS (
+        SELECT ROUND(total_revenue / total_purchases,2) AS average_purcahse_value,
+                ROUND(total_purchases / total_customers,2) AS average_purchase_frequency_rate,
+                ROUND((total_customers_begin - total_customers_end)/total_customers_begin,2) AS churn_rate
         FROM (
                 SELECT SUM(od.`quantityOrdered` * od.`priceEach`) AS total_revenue,
                         COUNT(`customerNumber`) AS total_purchases,
-                        COUNT(DISTINCT(`customerNumber`)) AS total_customers
+                        COUNT(DISTINCT(`customerNumber`)) AS total_customers,
+                        COUNT(DISTINCT CASE WHEN YEAR(odn.`shippedDate`) = 2003 THEN odn.`customerNumber` END) AS total_customers_begin,
+                        COUNT(DISTINCT CASE WHEN YEAR(odn.`shippedDate`) = 2005 THEN odn.`customerNumber` END) AS total_customers_end                       
                 FROM orderdetails od
                 JOIN orders_new odn
                         ON odn.`orderNumber` = od.`orderNumber`
-                WHERE odn.`status` IN ('Shipped', 'Resolved') AND YEAR(`shippedDate`) = 2003
+                WHERE odn.`status` IN ('Shipped', 'Resolved')
                 ) as agg_table6
+),
+CustomerLifetimeValue_CTE AS (
+        SELECT ROUND((average_purcahse_value * average_purchase_frequency_rate),2) AS customer_value,
+                ROUND(1/churn_rate,1) AS avg_customer_lifespan
+        FROM customerCTE
 )
-SELECT ROUND((average_purcahse_value * average_purchase_frequency_rate),2) AS customer_value 
-FROM customervalue_CTE
+SELECT ROUND(avg_customer_lifespan * customer_value,1) AS customer_lifetime_value
+FROM CustomerLifetimeValue_CTE 
 ;
 

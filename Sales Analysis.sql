@@ -142,6 +142,7 @@ JOIN customers_new c
     ON c.`customerNumber` = odn.`customerNumber` 
 WHERE odn.`status` IN ('Shipped', 'Resolved')
 GROUP BY c.country
+ORDER BY revenue DESC
 ;
 
 -- Revenue by sales rep 
