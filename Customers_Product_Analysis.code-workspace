@@ -2,12 +2,6 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"path": "../../Data Projects/Finlend Data Analysis/SQL"
-		},
-		{
-			"path": "../../Data Projects/Finlend Data Analysis/Python Notebook"
 		}
 	],
 	"settings": {}
