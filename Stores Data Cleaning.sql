@@ -1,15 +1,4 @@
--- Active: 1729712001528@@127.0.0.1@3306@db_schema
 USE db_schema;
-
--- Verifying MYSQL queries work
-ALTER TABLE customers_new
-ADD product_count INT;
-
-ALTER TABLE customers_new
-DROP COLUMN product_count;
-
-SELECT *
-FROM customers;
 
 -- Duplicating customers table for cleaning
 CREATE TABLE customers_new
